@@ -1,0 +1,67 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+
+
+# Generating dataset (structure condition: damaged = 1, not damaged = 0)
+def generate_dataset(size=1000):
+    # Features: [vibration_level, stress_intensity]
+    # Damaged structures
+    damaged = np.random.normal(loc=[7.5, 8.0], scale=1.0, size=(size // 2, 2))
+    
+    # Not damaged structures
+    not_damaged = np.random.normal(loc=[2.0, 2.5], scale=1.0, size=(size // 2, 2))
+
+    X = np.vstack((damaged, not_damaged))
+    y = np.array([1] * (size // 2) + [0] * (size // 2))
+    return X, y
+
+
+class AISClassifier:
+    def __init__(self, num_detectors=100, threshold=1.5):
+        self.num_detectors = num_detectors
+        self.threshold = threshold
+        self.detectors = []
+
+    def distance(self, x1, x2):
+        return np.linalg.norm(x1 - x2)
+
+    def train(self, X_train, y_train):
+        self.detectors = []
+        normal_data = X_train[y_train == 0]  # Non-damaged
+        for _ in range(self.num_detectors):
+            while True:
+                candidate = np.random.uniform(low=0, high=10, size=2)
+                if all(self.distance(candidate, nd) > self.threshold for nd in normal_data):
+                    self.detectors.append(candidate)
+                    break
+
+    def predict(self, X_test):
+        predictions = []
+        for x in X_test:
+            match = any(self.distance(x, d) < self.threshold for d in self.detectors)
+            predictions.append(1 if match else 0)
+        return np.array(predictions)
+
+
+X, y = generate_dataset(1000)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+model = AISClassifier(num_detectors=150, threshold=1.8)
+model.train(X_train, y_train)
+
+
+y_pred = model.predict(X_test)
+y_pred
+array([0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0,
+       1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0,
+       1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1,
+       1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0,
+       0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0,
+       1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1,
+       1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0,
+       0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1,
+       0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1,
+       0, 0])
+print("Classification Report:\n", classification_report(y_test, y_pred))
