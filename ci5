@@ -1,43 +1,24 @@
 import random
-import numpy as np
-import matplotlib.pyplot as plt
 from deap import base, creator, tools, algorithms
 
+def evaluate(ind):  # Simpler objective function
+    x = ind[0]
+    return (x - 2)**2,
 
-# Define the fitness function to maximize
-def evaluate(individual):
-    x = individual[0]
-    return x * np.sin(10 * np.pi * x) + 1.0,
+creator.create("FitnessMin", base.Fitness, weights=(-1.0,))  # Minimize the objective function
+creator.create("Individual", list, fitness=creator.FitnessMin)
 
+tb = base.Toolbox()
+tb.register("attr", random.uniform, -5, 5)  # Random attribute range
+tb.register("individual", tools.initRepeat, creator.Individual, tb.attr, n=1)
+tb.register("population", tools.initRepeat, list, tb.individual)
+tb.register("evaluate", evaluate)
+tb.register("mate", tools.cxBlend, alpha=0.5)
+tb.register("mutate", tools.mutGaussian, mu=0, sigma=0.1, indpb=0.2)
+tb.register("select", tools.selTournament, tournsize=3)
 
-creator.create("FitnessMax", base.Fitness, weights=(1.0,))  # Maximize
-creator.create("Individual", list, fitness=creator.FitnessMax)
+pop = tb.population(n=50)
+algorithms.eaSimple(pop, tb, cxpb=0.7, mutpb=0.2, ngen=40, verbose=True)
 
-toolbox = base.Toolbox()
-toolbox.register("attr_float", random.uniform, 0, 1)  # x in [0, 1]
-toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_float, n=1)
-toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
-toolbox.register("evaluate", evaluate)
-toolbox.register("mate", tools.cxBlend, alpha=0.5)
-toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.1, indpb=0.2)
-toolbox.register("select", tools.selTournament, tournsize=3)
-
-
-population = toolbox.population(n=50)
-NGEN = 40
-CXPB = 0.7  # Crossover probability
-MUTPB = 0.2  # Mutation probability
-
-# Statistics tracking
-stats = tools.Statistics(lambda ind: ind.fitness.values)
-stats.register("avg", np.mean)
-stats.register("max", np.max)
-
-
-population, logbook = algorithms.eaSimple(population, toolbox, cxpb=CXPB, mutpb=MUTPB, ngen=NGEN,
-                                          stats=stats, verbose=True)
-
-
-best_ind = tools.selBest(population, 1)[0]
-print(f"\nBest individual: x = {best_ind[0]:.4f}, f(x) = {evaluate(best_ind)[0]:.4f}")
+best = tools.selBest(pop, 1)[0]
+print(f"Best: x = {best[0]:.4f}, f(x) = {evaluate(best)[0]:.4f}")
